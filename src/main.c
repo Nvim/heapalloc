@@ -35,7 +35,7 @@ void *find_free_chunk(size_t size) {
       s_HeapChunk newChunk = (s_HeapChunk){
           .size = chunk.size - size,
           .free = 1,
-          .ptr = chunk.ptr + size,
+          .ptr = (uint8_t *)chunk.ptr + size,
       };
       chunks[heap_chunks_count++] = newChunk;
       //
@@ -52,15 +52,19 @@ void *find_free_chunk(size_t size) {
 }
 
 // find ptr's chunk in 'chunks' and mark it as free
-void free(void *ptr) {
+void my_free(void *ptr) {
+  if (ptr == NULL) {
+    fprintf(stderr, "my_free: NULL pointer provided\n");
+    return;
+  }
   for (int i = 0; i < heap_chunks_count; i++) {
     if (chunks[i].ptr == ptr) {
-      assert(chunks[i].ptr != NULL && chunks[i].free == 0);
+      assert(chunks[i].free == 0);
       chunks[i].free = 1;
       return;
     }
   }
-  fprintf(stderr, "free: invalid pointer provided");
+  fprintf(stderr, "my_free: invalid pointer provided\n");
 }
 
 void dump_heap() {
@@ -74,22 +78,38 @@ void dump_heap() {
   printf("---\n");
 }
 
+void test(const int allocs) {
+  void *ptrs[allocs];
+  for (int i = 0; i < allocs; i++) {
+    ptrs[i] = find_free_chunk(256);
+    assert(ptrs[i] != NULL);
+  }
+  dump_heap();
+  for (int i = 0; i < allocs; i++) {
+    my_free(ptrs[i]);
+  }
+  dump_heap();
+}
+
+void free_heap() { free(HEAP); }
+
 int main() {
   HEAP = malloc(HEAP_SIZE);
 
   init_heap();
-  dump_heap();
 
-  void *ptr = find_free_chunk(100);
-  assert(ptr != NULL);
-  dump_heap();
-  void *ptr2 = find_free_chunk(300);
-  assert(ptr2 != NULL);
-  dump_heap();
-
-  printf("\nFreeing ptr2...");
-  free(ptr2);
-  dump_heap();
+  test(15);
+  free_heap();
+  // void *ptr = find_free_chunk(100);
+  // assert(ptr != NULL);
+  // dump_heap();
+  // void *ptr2 = find_free_chunk(300);
+  // assert(ptr2 != NULL);
+  // dump_heap();
+  //
+  // printf("\nFreeing ptr2...");
+  // free(ptr2);
+  // dump_heap();
 
   return EXIT_SUCCESS;
 }
